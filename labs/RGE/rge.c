@@ -1,58 +1,72 @@
 #include <stdio.h> // gcc rge.c -o rge.exe
 #include <math.h>
-#include <stdint.h>
 #include <string.h>
 
-void print_binary(unsigned long int value) {
-    for (int i = sizeof(unsigned long int) * 8 - 1; i >= 0; i--) {
-        printf("%d", (value >> i) & 1);
+void printBinDoubleV1(char c[], unsigned long int a[]) {
+    int counter = 0;
+    for (int j = 1; j >= 0; j--) {
+        for (int i = sizeof(unsigned long int) * sizeof(double) - 1; i >= 0; i--) {
+            printf("%u%c", (a[j] >> i) & 1, (counter == 0 || counter == 11) * ' '); counter++;
+        }
     }
 }
 
-double convert_to_double(uint32_t k0, uint32_t k1) {
-    double result;
-    uint8_t bytes[8];
+void printBinDoubleV2(unsigned char a[]) {
+    int counter = 0;
+    for (int j = 7; j >= 0; j--) {
+        for (int i = sizeof(double) - 1; i >= 0; i--) {
+            printf("%u%c", (a[j] >> i) & 1, (counter == 0 || counter == 11) * ' '); counter++;
+        }
+    }
+}
 
-    // Разбиваем k0 и k1 на байты
-    bytes[0] = (k0 >> 0) & 0xFF;
-    bytes[1] = (k0 >> 8) & 0xFF;
-    bytes[2] = (k0 >> 16) & 0xFF;
-    bytes[3] = (k0 >> 24) & 0xFF;
-    bytes[4] = (k1 >> 0) & 0xFF;
-    bytes[5] = (k1 >> 8) & 0xFF;
-    bytes[6] = (k1 >> 16) & 0xFF;
-    bytes[7] = (k1 >> 24) & 0xFF;
+double convToDoubleV1(unsigned long int a[]) {
+    unsigned char bytes[sizeof(double)];
+    int k = 0;
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j <= 24; j += 8) bytes[k++] = (a[i] >> j) & 255;
+    }
 
-    // Копируем байты в переменную типа double
-    memcpy(&result, bytes, sizeof(result));
+    // double result; 
+    // memcpy(&result, bytes, sizeof(double));
+    // return result;
+    return *(double*)bytes;
+}
 
-    return result;
+double convToDoubleV2(unsigned long int a[]) {
+    union {
+        unsigned long long num;
+        double d;
+    } u;
+    u.num = ((unsigned long long)a[1] << 32) | a[0];
+    return u.d;
 }
 
 void main () 
 {
     union 
     {
-        unsigned long int k[2]; // 8 байт
+        unsigned char bytes[8]; // 1 * 8 байт
+        unsigned long int k[2]; // 4 * 2 байт
         double d; // 8 байт
-        struct {
-            unsigned int mantissa : 23;
-            unsigned int exp : 8;
-            unsigned int sign : 1;
-        } parts;
     } uni;
-
     uni.d  = 0.1;
-    printf("origin num: %lf\n", uni.d);
 
-    print_binary(uni.k[1]); printf("\n"); print_binary(uni.k[0]); printf("\n");
+    // printf("Enter number: "); scanf("%lf", &uni.d);
 
+    for (int i = 0; i < 8; i++) printf("%u ", uni.bytes[i]); printf("\n");
     // printf("\n %o %o", uni.k[0], uni.k[1]);
-    printf("\n %lu %lu", uni.k[0], uni.k[1]);
-    printf("\n %u", uni.parts.mantissa);
-    printf("\n %u", uni.parts.exp);
-    printf("\n %u\n", uni.parts.sign);
+    printf("%lu %lu\n", uni.k[0], uni.k[1]);
+    // print_bin("%u", uni.parts.mantissa);
+    // printf("%u\n", uni.parts.exp);
+    // printf("%d\n", uni.parts.sign);
 
-    printf("\n%lf", convert_to_double(uni.k[0], uni.k[1]));
-   
+    printf("origin num: %.25lf\n", uni.d);
+
+    printf("binary view (from ints): "); printBinDoubleV1("%u", uni.k); printf("\n");
+    printf("binary view (from bytes): "); printBinDoubleV2(uni.bytes); printf("\n");
+
+    printf("my last method view: %.25lf\n", *(double*)uni.bytes);
+
+    printf("decimal view: %.25lf or %.25lf", convToDoubleV1(uni.k), convToDoubleV2(uni.k));
 }
