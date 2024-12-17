@@ -30,8 +30,7 @@ double bytesToDouble(unsigned long long l) {
     return (sign(l) ? -val : val);
 }
 
-void main () 
-{
+void main () {
     union 
     {
         unsigned char bytes[BYTE]; // 1 * 8 byte
@@ -50,7 +49,7 @@ void main ()
     printf("binary view: "); printBinDouble(uni.ll); printf("\n");
 
     // looks pretty fine
-    for (int i = 0; i < sizeof("binary view: ")-1; i++) printf(" ");
+    for (int i = 0; i < sizeof("binary view: ") - 1; i++) printf(" ");
     for (int i = sizeof(double) - 1; i >= 0; i--) printf("^___%u%c__^", i, (i == 7 || i == 6) * '_');
     printf("\n");
 
