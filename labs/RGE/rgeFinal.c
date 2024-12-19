@@ -17,7 +17,7 @@ void printBinDouble(unsigned long long l) {
 
 int sign(unsigned long long l) { return (l >> (MANTISSA_LEN + EXP_LEN)) & 1; }
 
-unsigned long int _exp(unsigned long long l) { return (l >> MANTISSA_LEN) & BITS_11; }
+unsigned long _exp(unsigned long long l) { return (l >> MANTISSA_LEN) & BITS_11; }
 
 unsigned long long mantissa(unsigned long long l) { return l & BITS_52; }
 
