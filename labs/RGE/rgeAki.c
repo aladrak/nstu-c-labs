@@ -1,68 +1,54 @@
 #include <stdio.h> // gcc rgeAki.c -o rgeAki.exe
-#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
-void binary(unsigned long k[]);
-unsigned znak(unsigned long int k);
-unsigned long long mantissa(unsigned long f, unsigned long s);
-int harakt(unsigned long int first);
-unsigned long long celoe(unsigned long long m, int exp);
-double drob(unsigned long long m, int exp);
+// Функция для умножения двоичного числа на 1010
+void multiplyBinary(char *binary, char *result) {
+    int len = strlen(binary);
+    int carry = 0;
 
-void main()
-{
-    union
-    {
-        unsigned long int k[2];
-        double f;
-    } a;
-    a.f = 0.1;
-    // printf("n = "); scanf_s("%lf", &a.f);
-    // printf("\n %o %o", a.k[0], a.k[1]);
-    // printf("\n %u %u", a.k[0], a.k[1]);
-    printf("\n %.30lf\n", a.f);
-    // printf("\nDvoichnyi vid\n");
-    int exp = harakt(a.k[1]);
-    unsigned long long m = mantissa(a.k[1], a.k[0]);
-    double frac = 1.; 
-    for (int i = 0; i < 52; i++) 
-    {
-        if (m & (1ULL << (51 - i))) 
-        {
-            frac += pow(2, -(i + 1)); 
-        }
+    // Умножение на 1010 (10 в десятичной системе)
+    for (int i = len - 1; i >= 0; i--) {
+        int digit = binary[i] - '0';
+        int product = digit * 10 + carry;
+
+        result[i + 3] = (product % 2) + '0';
+        carry = product / 2;
     }
-    printf("Dvoichnyi vid:\n ");
-    binary(a.k);
-    printf("\nS perevodom v desyatichnyi: %.30lf ", pow(-1, znak(a.k[1])) * pow(2, (double)exp) * frac);
-    printf("\nZnak: %u", znak(a.k[1]));
-    printf("\nHaracteristica: %d", exp);
-    printf("\nMantissa: %llu\n", m);
-    printf("\nVes perevod: %u", 1);
-}
 
-void binary(unsigned long k[])
-{
-    for (int j = 1; j >= 0; j--) 
-    {
-        for (int i = 31; i >= 0; i--) 
-        { 
-            printf("%d", (k[j] >> i) & 1); 
+    // Обработка оставшегося переноса
+    for (int i = 2; i >= 0; i--) {
+        result[i] = (carry % 2) + '0';
+        carry /= 2;
+    }
+
+    // Если есть перенос, добавляем его в начало
+    if (carry > 0) {
+        result[0] = carry + '0';
+    } else {
+        // Сдвигаем результат на одну позицию влево
+        for (int i = 0; i < len + 3; i++) {
+            result[i] = result[i + 1];
         }
+        result[len + 3] = '\0';
     }
 }
 
-unsigned znak(unsigned long k) 
-{ 
-    return (k >> 31) & 1; 
-}
+int main() {
+    char binary[] = "1101001011010110"; // Пример двоичного числа
+    char result[20]; // Массив для хранения результата
 
-unsigned long long mantissa(unsigned long f, unsigned long s)
-{
-    unsigned long long m = ((unsigned long long)(f & 0xFFFFF) << 32) | s; 
-    return m ;
-}
+    // Инициализация результата
+    for (int i = 0; i < 20; i++) {
+        result[i] = '0';
+    }
+    result[19] = '\0';
 
-int harakt(unsigned long first) 
-{ 
-    return ((first >> 20) & 0x7FF) - 1023; 
+    // Умножение
+    multiplyBinary(binary, result);
+
+    // Вывод результата
+    printf("Result: %s\n", result);
+
+    return 0;
 }
