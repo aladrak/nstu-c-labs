@@ -1,96 +1,91 @@
 #include <stdio.h> // gcc rgeNew.c -o rgeNew.exe
-#include <stdlib.h>
-
+#include <math.h>
+#define MANTISSA_LEN 52
 #define BYTE 8
-#define MANTISSA_SIZE 52
-#define EXP_LEN 11
 
-
-// Функция для умножения двоичной мантиссы на 1010 (10 в двоичной системе)
-void multiply_by_1010(unsigned *mantissa, unsigned *result, unsigned *dec, int *dec_size) {
+void printArr(unsigned *a, int len) {
+    for (int i = len - 1; i >= 0; i--) {
+        printf("%u", a[i]);
+    }
+}
+void multiplyBinary(unsigned *m, int len_m, unsigned *n, int len_n, unsigned *overflow) {
+    int temp_result[MANTISSA_LEN * 2] = {0};
     int carry = 0;
-    for (int i = MANTISSA_SIZE - 1; i >= 0; i--) {
-        int temp = mantissa[i] * 2 + carry;
-        result[i] = temp % 2;
-        carry = temp / 2;
-        if (i == 0 && carry > 0) {
-            dec[*dec_size] = carry;
-            (*dec_size)++;
+
+    // Процесс умножения по аналогии с длинным умножением
+    for (int i = 0; i < len_m; i++) {
+        carry = 0;
+        for (int j = 0; j < len_n; j++) {
+            int product = m[i] * n[j] + carry + temp_result[i + j];
+            temp_result[i + j] = product % 2;
+            carry = product / 2;
+        }
+        if (carry) {
+            temp_result[i + len_n] = carry;
         }
     }
-}
 
-// Функция для печати двоичной мантиссы
-void print_mantissa(unsigned *mantissa) {
-    for (int i = 0; i < MANTISSA_SIZE; i++) printf("%u", mantissa[i]);
-    printf("\n");
-}
-
-// Функция для преобразования двоичного числа в десятичное
-int binary_to_decimal(unsigned *dec, int dec_size) {
-    int decimal = 0;
-    for (int i = 0; i < dec_size; i++) {
-        decimal = decimal * 2 + dec[i];
+    // Копируем результат в массив m
+    for (int i = 0; i < len_m; i++) {
+        m[i] = temp_result[i];
     }
-    return decimal;
-}
 
-// Функция для обнуления массива dec
-void reset_dec(unsigned *dec, int dec_size) {
-    for (int i = 0; i < dec_size; i++) {
-        dec[i] = 0;
+    // Копируем переполнение в массив overflow
+    for (int i = len_m; i < len_m + len_n; i++) {
+        overflow[i - len_m] = temp_result[i];
     }
 }
 
-int main() {
+unsigned binaryToDecimal(unsigned *a, int len) {
+    unsigned dec = 0, power = 1;
+    for (int i = 0; i < len; i++) {
+        if (a[i]) {
+            dec += power;
+        }
+        power *= 2;
+    }
+    return dec;
+}
+
+int isArrayZero(unsigned *a, int len) {
+    for (int i = 0; i < len; i++) {
+        if (a[i] != 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int main () {
     union {
-        unsigned char bytes[BYTE]; // 1 * 8 byte
-        unsigned long long int ll; // 8 byte
-        double d; // 8 byte
+        unsigned char bytes[8];   // 1 * 8 byte
+        unsigned long long ll;    // 8 byte
+        double d;                 // 8 byte
     } uni;
-    uni.d = 0.1;
-
-    unsigned mantissa[MANTISSA_SIZE], result[MANTISSA_SIZE], dec[MANTISSA_SIZE];
-    int dec_size = 0;
-    int counter = 0;
-    for (int i = BYTE * BYTE - EXP_LEN - 2; i >= 0; i--) {
-        mantissa[counter] = (uni.ll >> i) & 1;
-        counter++;
+    uni.d = 0.2;
+    unsigned m[MANTISSA_LEN];
+    unsigned n[4] = {0, 1, 0, 1};
+    unsigned overflow[MANTISSA_LEN * 2] = {0};
+    for (int i = MANTISSA_LEN - 1; i >= 0; i--) {
+        m[i] = (uni.ll >> i) & 1;
     }
-    reset_dec(dec, MANTISSA_SIZE);
+    unsigned long long mantissa = uni.ll & 0x000FFFFFFFFFFFFF;
 
-    printf("Initial mantissa: ");
-    print_mantissa(mantissa);
-
-    while (1) {
-        multiply_by_1010(mantissa, result, dec, &dec_size);
-
-        // Проверка, стала ли мантисса полностью нулевой
-        int all_zeros = 1;
-        for (int i = 0; i < MANTISSA_SIZE; i++) {
-            if (result[i] != 0) {
-                all_zeros = 0;
-                break;
-            }
-        }
-        if (all_zeros) {
-            break;
-        }
-
-        // Копирование результата обратно в мантиссу
-        for (int i = 0; i < MANTISSA_SIZE; i++) mantissa[i] = result[i];
-
-        // Преобразование двоичного числа в десятичное и обнуление массива dec
-        if (dec_size > 0) {
-            int decimal_value = binary_to_decimal(dec, dec_size);
-            printf("Decimal part: %d\n", decimal_value);
-            reset_dec(dec, MANTISSA_SIZE);
-            dec_size = 0;
-        }
+    // Convert the mantissa to a binary array
+    for (int i = 0; i < MANTISSA_LEN; i++) {
+        m[i] = (mantissa >> i) & 1;
     }
+    // m[MANTISSA_LEN - 1] = 0;
+    printf("Original m[]: "); printArr(m, MANTISSA_LEN);
+    printf("\nOriginal n[]: "); printArr(n, 4);
 
-    printf("Final mantissa: ");
-    print_mantissa(result);
+    while (!isArrayZero(m, MANTISSA_LEN)) {
+        multiplyBinary(m, MANTISSA_LEN, n, 4, overflow);
 
-    return 0;
+        printf("\nResult m[]: ");
+        printArr(m, MANTISSA_LEN);
+
+        printf("\nOverflow (extra bits): %u ", binaryToDecimal(overflow, 6));
+        printArr(overflow, 4);
+    }
 }
