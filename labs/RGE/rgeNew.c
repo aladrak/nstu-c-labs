@@ -1,15 +1,6 @@
 #include <stdio.h> // gcc rgeNew.c -o rgeNew.exe
 #define MANTISSA_LEN 52
 #define BYTE 8
-double degree(double n, double s) {
-    double res = 1;
-    for (int i = 0; i < (s < 0 ? -s : s); i++) res *= n;
-    return (s < 0 ? 1 / res : res);
-}
-double corrector(double n) { 
-    if (n < 0) return n - 1;
-    if (n > 0) return n + 1;
-}
 
 void printArr(unsigned *a, int len) {
     for (int i = len - 1; i >= 0; i--) {
@@ -59,17 +50,19 @@ int main () {
         unsigned long long ll;    // 8 byte
         double d;                 // 8 byte
     } uni;
-    uni.d = 0.1; 
-    uni.d = ((int)uni.d == 0 ? corrector(uni.d) : uni.d);
-    
+    uni.d = 0.2;
     unsigned m[MANTISSA_LEN];
     unsigned n[4] = {0, 1, 0, 1};
     unsigned overflow[MANTISSA_LEN * 2] = {0};
-
     for (int i = MANTISSA_LEN - 1; i >= 0; i--) {
         m[i] = (uni.ll >> i) & 1;
     }
+    unsigned long long mantissa = uni.ll & 0x000FFFFFFFFFFFFF;
 
+    // Convert the mantissa to a binary array
+    for (int i = 0; i < MANTISSA_LEN; i++) {
+        m[i] = (mantissa >> i) & 1;
+    }
     // m[MANTISSA_LEN - 1] = 0;
     printf("Original m[]: "); printArr(m, MANTISSA_LEN);
     printf("\nOriginal n[]: "); printArr(n, 4);
