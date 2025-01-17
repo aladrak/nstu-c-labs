@@ -13,30 +13,18 @@ void printArr(unsigned *a, int len) { for (int i = len - 1; i >= 0; i--) printf(
 void printArrRight(unsigned *a, int len) { for (int i = 0; i < len; i++) printf("%u", a[i]); }
 void printBin(unsigned long long l, int low, int high) {
     int counter = 0;
-    for (int i = high - 1; i >= low; i--) {
-        printf("%u", (l >> i) & 1); counter++;
-    }
+    for (int i = high - 1; i >= low; i--) { printf("%u", (l >> i) & 1); counter++; }
 }
 void transDecToBin(int n) {
-    short a[32] = {0};
-    if (n == 0) { 
-        printf("0");
-        return;
-    }
+    unsigned a[32] = {0};
+    if (n == 0) { printf("0"); return; }
     int i = 0;
-    while (n > 0) {
-        a[i++] = (n % 2);
-        n /= 2;
-    }
-    while(i >= 0) {
-        printf("%u", a[i--]);
-    }
+    while (n > 0) { a[i++] = (n % 2); n /= 2; }
+    printArr(a, i);
 }
 
 int _sign(unsigned long long l) { return (l >> (MANTISSA_LEN + EXP_LEN)) & 1; } 
-
 int _exp(unsigned long long l) { return ((l >> MANTISSA_LEN) & BITS_11) - 1023; }
-
 unsigned long long _mantissa(unsigned long long l) { return l & BITS_52; }
 
 void fracBin(double n, unsigned arr[], unsigned floatPart[]) {
@@ -48,10 +36,11 @@ void fracBin(double n, unsigned arr[], unsigned floatPart[]) {
         fracPart -= r;
         arr[i--] = r;
     } while (fracPart > 0 && i >= 0);
-    for (int i = 0; i < MANTISSA_LEN; i++) {
-        floatPart[i] = arr[i];
-    }
+    for (int i = 0; i < MANTISSA_LEN; i++) { floatPart[i] = arr[i]; }
+    floatPart[0] = arr[0] = 0;
+    floatPart[1] = arr[1] = 1;
 }
+
 void multiplyBinary(unsigned *m, int len_m, unsigned *n, int len_n, unsigned *overflow) {
     int carry = 0, temp_result[MANTISSA_LEN * 2] = {0};
 
@@ -69,9 +58,7 @@ void multiplyBinary(unsigned *m, int len_m, unsigned *n, int len_n, unsigned *ov
 }
 
 int isArrayZero(unsigned *a, int len) {
-    for (int i = 0; i < len; i++) {
-        if (a[i] != 0) return 0;
-    }
+    for (int i = 0; i < len; i++) { if (a[i] != 0) return 0; }
     return 1;
 }
 
@@ -86,12 +73,13 @@ unsigned binaryToDecimal(unsigned *a, int len) {
 
 unsigned long long extractIntegerPart(unsigned long long mantissa, int exponent) {
     mantissa |= 0x0010000000000000;
-    if (exponent >= 0) {
-        mantissa <<= exponent;
-    } else {
-        mantissa >>= -exponent;
-    }
-    return mantissa >> 52;
+    return (exponent >= 0 ? (mantissa << exponent) : (mantissa >> -exponent)) >> 52;
+    // if (exponent >= 0) {
+    //     mantissa <<= exponent;
+    // } else {
+    //     mantissa >>= -exponent;
+    // }
+    // return mantissa >> 52;
 }
 
 void main () {
@@ -116,11 +104,10 @@ void main () {
     int counter = 0;
     while (!isArrayZero(m, MANTISSA_LEN)) {
         multiplyBinary(m, MANTISSA_LEN, n, 4, overflow);
+        ofBit[counter++] = binaryToDecimal(overflow, 6);
 
         // printf("\nResult m[]: ");
         // printArr(m, MANTISSA_LEN);
-
-        ofBit[counter++] = binaryToDecimal(overflow, 6);
         // printf("\nOverflow (extra bits): %u ", binaryToDecimal(overflow, 6));
         // printArr(overflow, 4);
     }
