@@ -1,4 +1,5 @@
 #include <stdio.h> // gcc rgeFinal.c -o rgeFinal.exe
+// gcc -o rgeFinal.exe -std=c99 --pedantic rgeFinal.c
 
 #define DOUBLE_LEN 64
 #define MANTISSA_LEN 52
@@ -39,6 +40,45 @@ void fracBin(double n, unsigned arr[], unsigned floatPart[]) {
     for (int i = 0; i < MANTISSA_LEN; i++) { floatPart[i] = arr[i]; }
     floatPart[0] = arr[0] = 0;
     floatPart[1] = arr[1] = 1;
+}
+
+unsigned cDecFromBin(unsigned binaryArray[], int size) {
+    unsigned decimalValue = 0;
+    for (int index = 0; index < size; index++) {
+        decimalValue += binaryArray[index] * (1 << (size - 1 - index));
+    }
+    return decimalValue;
+}
+
+void convFracToDec(unsigned* binaryFraction, int exponent) {
+    unsigned intermediateResults0[64] = { 0 };
+    unsigned intermediateResults1[64] = { 0 };
+    unsigned finalResults[64] = { 0 };
+
+    printf("\nfrac part: 0.");
+
+    for (int i = 0; i < 64; i++) {
+        int carryOver = 0;
+        for (int j = 0; j < 56; j++) {
+            intermediateResults0[j + 1] = binaryFraction[j];
+            intermediateResults1[j + 3] = binaryFraction[j];
+        }
+
+        for (int j = 59; j >= 0; j--) {
+            int total = intermediateResults0[j] + intermediateResults1[j] + carryOver;
+            carryOver = total / 2;
+            finalResults[j] = total % 2;
+        }
+
+        unsigned decimalDigit = 0;
+        for (int j = 0; j < 59; j++) {
+            binaryFraction[j] = finalResults[j + 4];
+            decimalDigit += binaryFraction[j];
+        }
+
+        if (decimalDigit > 0) printf("%u", cDecFromBin(finalResults, 4));
+    }
+    printf("\n");
 }
 
 void multiplyBinary(unsigned *m, int len_m, unsigned *n, int len_n, unsigned *overflow) {
@@ -82,7 +122,13 @@ unsigned long long extractIntegerPart(unsigned long long mantissa, int exponent)
     // return mantissa >> 52;
 }
 
-void main () {
+void reverse(unsigned a[], int len) {
+    for (int i = 0; i < len; i++) {
+        a[i] = a[len-i-1];
+    }
+    a[50] = 1;
+}
+int main () {
     union 
     {
         unsigned char bytes[BYTE]; // 1 * 8 byte
@@ -92,19 +138,24 @@ void main () {
     printf("1. "); scanf("%lf", &uni.d);
     
     int exps = _exp(uni.ll); unsigned long long mant = _mantissa(uni.ll);
-    unsigned m[MANTISSA_LEN], n[4] = {0, 1, 0, 1}, overflow[MANTISSA_LEN * 2] = {0}, floatPart[MANTISSA_LEN];
+    unsigned m[MANTISSA_LEN+EXP_LEN] = {0};
+    unsigned n[4] = {0, 1, 0, 1}, overflow[MANTISSA_LEN * 2] = {0}, floatPart[MANTISSA_LEN];
     fracBin(uni.d, m, floatPart);
     if ((int)uni.d != 0) {
         for (int i = MANTISSA_LEN - 1; i >= 0; i--) {
             floatPart[i] = m[i] = ((uni.ll << exps) >> i) & 1;
         }
     }
+    reverse(m, MANTISSA_LEN);
+    printArr(m, MANTISSA_LEN); printf("\n");
+    convFracToDec(m, exps);
+    // unsigned m[] = {1, 1, 0, 0, 1, 1, 0, 0, 0};
 
     unsigned ofBit[100];
     int counter = 0;
     while (!isArrayZero(m, MANTISSA_LEN)) {
         multiplyBinary(m, MANTISSA_LEN, n, 4, overflow);
-        ofBit[counter++] = binaryToDecimal(overflow, 6);
+        ofBit[counter++] = binaryToDecimal(overflow, 4);
 
         // printf("\nResult m[]: ");
         // printArr(m, MANTISSA_LEN);
