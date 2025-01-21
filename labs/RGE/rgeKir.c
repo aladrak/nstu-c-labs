@@ -1,201 +1,130 @@
 #include <stdio.h> // gcc rgeKir.c -o rgeKir.exe
-#include <locale.h>
-#include <math.h>
+#include <math.h> // Для использования функции modf
 
-unsigned Sign(unsigned long long num) { return num >> 63; } // выделение знака
+unsigned S(unsigned num) { return num >> 31; } // выделение знака 
+unsigned C(unsigned num) { return num << 1 >> 24; } // выделение характеристики 
+unsigned M(unsigned num) { num = num << 9 >> 9; return num | 040000000; } // выделение мантиссы
 
-unsigned Characteristika(unsigned long long num) { return (num >> 52) & 0x7FF; } // выделение характеристики
-
-unsigned long long Mantis(unsigned long long num) { return num & 0xFFFFFFFFFFFFF; } // выделение мантиссы
 
 void CAsBinNum(unsigned num) // вывод характеристики в двоичном виде
 {
-    int i, arr[11];
+    int i, arr[8];
+    for (i = 0; i < 8; i++)            // Создаем массив для хранения битов
+    {
+        arr[i] = num % 2;                    // В цикле делим число на 2 и записываем остатки - это и будут биты
+        num /= 2;
+    }
+    for (i = 7; i >= 0; i--) printf("%d", arr[i]);        // Потом выводим их в обратном порядке
+}
 
-    for (i = 0; i < 11; i++)
+void MAsBinNum(unsigned num) // вывод мантиссы в двоичном виде
+{
+    int i, arr[23];
+    for (i = 0; i < 23; i++)
     {
         arr[i] = num % 2;
         num /= 2;
     }
-
-    for (i = 10; i >= 0; i--)
-        printf("%d", arr[i]);
+    for (i = 22; i >= 0; i--) printf("%d", arr[i]);
 }
 
-void MAsBinNum(unsigned long long num) // вывод мантиссы в двоичном виде
+void iPartBinNum(int num) // вывод целой части числа в двоичном виде
 {
-    int i, arr[52];
-
-    for (i = 0; i < 52; i++)
-    {
-        arr[i] = num % 2;
-        num /= 2;
-    }
-
-    for (i = 51; i >= 0; i--)
-        printf("%d", arr[i]);
-}
-
-void iPartBinNum(long long num) // вывод целой части числа в двоичном виде
-{
-    int i = 0, j;
-    int arr[64];
-
-    if (num < 0)
-    {
-        num = -num;
-        printf("-");
-    }
-
+    int i = 0, j, arr[32];
+    if (num < 0) { num = -num; printf("-"); }    // Если число отрицательное, выводим минус и берем модуль
     do
     {
-        arr[i] = num % 2;
-        num /= 2;
+        arr[i] = num % 2;        // остаток при делении на 2 
+        num /= 2;          // Переводим число в двоичную систему через деление на 2
         i++;
     } while (num != 0);
-
-    for (j = i - 1; j >= 0; j--)
-        printf("%d", arr[j]);
+    for (j = i - 1; j >= 0; j--) printf("%d", arr[j]); // запись ответа в обратном порядке
 }
 
-void fPartBinNum(double num) // вывод дробной части числа в двоичном виде
-{
-    int r;
-    num -= (long long)num;
+unsigned iPartNum(unsigned num, int p) { p -= 127; return num >> (23 - p); } // определeние целой части по мантиссе
+unsigned  fPartNum(unsigned  num, int p) { p -= 127; return num << (41 - p) >> (41 - p); } // определение дробной части по мантиссе
 
-    if (num < 0)
-    {
-        num = -num;
-        printf("-0.");
-    }
-    else
-        printf("0.");
-
-    do
-    {
-        num *= 2;
-        r = (int)num;
-        num -= r;
-        printf("%d", r);
-    } while (num);
-}
-
-unsigned long long iPartNum(unsigned long long num, int p)
-{
-    p -= 1023;
-    return num >> (52 - p);
-} // определение целой части по мантиссе
-
-unsigned long long fPartNum(unsigned long long num, int p)
-{
-    p -= 1023;
-    return num << (12 + p) >> (12 + p);
-} // определение дробной части по мантиссе
-
-int mul10(int *arr) // умножение двоичного числа на 10
+int mul10(int* arr) // умножение двоичного числа на 1010
 {
     int i, j, b = 0, arr1[132], arr2[132], res[132], r = 0;
-
-    arr1[0] = 0;
-    arr1[1] = 0;
-    arr1[2] = 0;
-    for (i = 3; i < 131; i++)
-        arr1[i] = arr[i - 3];
-    arr1[131] = 0;
-    arr2[0] = 0;
-    for (i = 1; i < 129; i++)
-        arr2[i] = arr[i - 1];
-    for (i = 129; i < 132; i++)
-        arr2[i] = 0;
-
+    arr1[0] = 0; arr1[1] = 0; arr1[2] = 0; for (i = 3; i < 131; i++) arr1[i] = arr[i - 3]; arr1[131] = 0; //сложение, for (i = 3; i < 131; i++) - вписываю число, которое получилось 
+    arr2[0] = 0; for (i = 1; i < 129; i++) arr2[i] = arr[i - 1]; for (i = 129; i < 132; i++) arr2[i] = 0; //
     for (i = 131; i >= 0; i--)
     {
         res[i] = arr1[i] + arr2[i] + b;
-        if (res[i] == 3)
-        {
-            res[i] = 1;
-            b = 1;
-            continue;
-        }
-        if (res[i] == 2)
-        {
-            res[i] = 0;
-            b = 1;
-            continue;
-        }
+        if (res[i] == 3) { res[i] = 1; b = 1; continue; }
+        if (res[i] == 2) { res[i] = 0; b = 1; continue; }
         b = 0;
-    }
 
+    }
     for (i = 0; i < 4; i++)
     {
-        b = 1;
-        for (j = 0; j < 3 - i; j++)
-            b *= 2;
+        b = 1; for (j = 0; j < 3 - i; j++) b *= 2;
         r += res[i] * b;
     }
-
-    for (i = 0; i < 128; i++)
-        arr[i] = res[i + 4];
-
+    for (i = 0; i < 128; i++) arr[i] = res[i + 4];
     return r;
 }
 
-int isZero(int *arr)
-{
-    int i;
-    for (i = 0; i < 128; i++)
-        if (arr[i] != 0)
-            return 0;
-    return 1;
-} // определение нулевого массива
+int isZero(int* arr) { int i; for (i = 0; i < 128; i++) if (arr[i] != 0) return 0; return 1; } // определение нулевого массива // если в массиве есть единица, то продолж цикл, если нет,  то мы его завершаем
 
-void translation(unsigned long long num, long long p) // перевод из двоичного вида в десятичный
+void fPartBinNum(float num, unsigned p, int* binArr, int* size) // вывод дробной части числа в двоичном виде
+{
+    int r, i = 0;
+    double intPart, fracPart;
+    fracPart = modf(num, &intPart); // Отделение дробной части от целой
+    if (fracPart < 0) { fracPart = -fracPart; printf("-0."); }
+    else printf("0.");
+    do
+    {
+        fracPart *= 2;
+        r = (int)fracPart;
+        fracPart -= r;
+        binArr[i++] = r;
+        printf("%d", r);
+    } while (fracPart > 0 && i < 128); // Ограничение на 128 бит
+    *size = i;
+}
+
+void translation(int* binArr, int binSize, unsigned p) // перевод из двоичного вида в десятичный
 {
     int i, arr[128], res[128];
-
-    p -= 1023;
-    num <<= (12 + p);
-
-    for (i = 0; i < 64; i++)
-        arr[i] = num << i >> 63;
-    for (i = 64; i < 128; i++)
-        arr[i] = 0;
-    for (i = 0; i < 128; i++)
-        res[i] = 0;
-
-    i = 0;
-    while (!isZero(arr))
-    {
-        res[i] = mul10(arr);
-        i++;
-    }
-
-    for (i = 0; i < 128; i++)
-        printf("%d", res[i]);
+    for (i = 0; i < 128; i++) arr[i] = 0;
+    for (i = 0; i < binSize; i++) arr[i] = binArr[i];
+    for (i = 0; i < 128; i++) res[i] = 0;
+    i = 0; while (!isZero(arr)) { res[i] = mul10(arr); i++; }  // пока в массиве arr есть хоть одна единица, умножаем число на 10 и записываем результат в новый массив
+    for (i = 0; i < 128; i++) printf("%d", res[i]);
 }
 
 int main()
 {
+    unsigned p;
+    int binArr[128], binSize;
+    union { unsigned i; float f; } u;
+    u.f = 0.1;
+    printf("Number: %f", u.f); // ввод числа
+    printf("\nNumber in bin: %d ", S(u.i)); CAsBinNum(C(u.i)); printf(" "); MAsBinNum(M(u.i)); // число в машинном коде
+    printf("\n\nSign: %d", S(u.i)); // знак
+    p = C(u.i) - 127;
+    printf("\n\nOrder: %d", p); // порядок
 
-    union
-    {
-        unsigned long long i;
-        double f;
-    } u;
+    // Отделение целой части от дробной
+    double intPart;
+    modf(u.f, &intPart);
 
-    printf("Chislo: ");
-    scanf("%lf", &u.f); // ввод числа
-    printf("\nChislo in bin : %d ", Sign(u.i));
-    CAsBinNum(Characteristika(u.i));
-    printf(" ");
-    MAsBinNum(Mantis(u.i));                       // число в машинном коде
-    printf("\n Znak: %c", Sign(u.i) ? '-' : '+'); // знак
-    printf("\n Haracterstika: ");
-    CAsBinNum(Characteristika(u.i)); // характеристика
-    printf("\nMantissa: ");
-    MAsBinNum(Mantis(u.i));                                // мантисса
-    printf("\nPoryadok: %d", Characteristika(u.i) - 1023); // порядок
-    printf("\nCelaya chast in bin: ");
-    iPartBinNum((long long)u.f);            // целое в двоичном
-    printf("\n Chislo in dec: %.64f", u.f); // число в десятичном
+    printf("\n\nInteger part in bin: "); iPartBinNum((int)intPart); // целое в двоичном
+    printf("\n\nFloat part in bin: "); fPartBinNum(u.f, p, binArr, &binSize); // дробное в двоичном
+
+    // Вывод binArr
+    printf("\n\nbinArr: ");
+    for (int i = 0; i < binSize; i++) {
+        printf("%d", binArr[i]);
+    }
+
+    printf("\n\nInteger part in dec: %d", S(u.i) == 1 ? -1 * iPartNum(M(u.i), C(u.i)) : iPartNum(M(u.i), C(u.i))); // целое в десятичном
+    printf("\n\nFloat part in dec:%c0.", S(u.i) == 1 ? '-' : ' ');
+    translation(binArr, binSize, C(u.i)); // дробное в десятичном
+    printf("\n\nNumber in dec:%c%d.", S(u.i) == 1 ? '-' : ' ', iPartNum(M(u.i), C(u.i)));
+    translation(binArr, binSize, C(u.i)); // число в десятичном
+    return 0;
 }

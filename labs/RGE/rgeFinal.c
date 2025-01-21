@@ -1,5 +1,4 @@
 #include <stdio.h> // gcc rgeFinal.c -o rgeFinal.exe
-// gcc -o rgeFinal.exe -std=c99 --pedantic rgeFinal.c
 
 #define DOUBLE_LEN 64
 #define MANTISSA_LEN 52
@@ -10,12 +9,13 @@
 #define BITS_11 0x7FF
 
 void printArr(unsigned *a, int len) { for (int i = len - 1; i >= 0; i--) printf("%u", a[i]); }
-
 void printArrRight(unsigned *a, int len) { for (int i = 0; i < len; i++) printf("%u", a[i]); }
-void printBin(unsigned long long l, int low, int high) {
-    int counter = 0;
-    for (int i = high - 1; i >= low; i--) { printf("%u", (l >> i) & 1); counter++; }
-}
+void printBin(unsigned long long l, int low, int high) { for (int i = high - 1; i >= low; i--) { printf("%u", (l >> i) & 1); } }
+
+int _sign(unsigned long long l) { return (l >> (MANTISSA_LEN + EXP_LEN)) & 1; } 
+int _exp(unsigned long long l) { return ((l >> MANTISSA_LEN) & BITS_11) - 1023; }
+unsigned long long _mantissa(unsigned long long l) { return l & BITS_52; }
+
 void transDecToBin(int n) {
     unsigned a[32] = {0};
     if (n == 0) { printf("0"); return; }
@@ -24,77 +24,42 @@ void transDecToBin(int n) {
     printArr(a, i);
 }
 
-int _sign(unsigned long long l) { return (l >> (MANTISSA_LEN + EXP_LEN)) & 1; } 
-int _exp(unsigned long long l) { return ((l >> MANTISSA_LEN) & BITS_11) - 1023; }
-unsigned long long _mantissa(unsigned long long l) { return l & BITS_52; }
-
-void fracBin(double n, unsigned arr[], unsigned floatPart[]) {
-    int i = MANTISSA_LEN - 1; 
-    double fracPart = n - (int)n;
-    do {
-        fracPart *= 2;
-        int r = (int)fracPart;
-        fracPart -= r;
-        arr[i--] = r;
-    } while (fracPart > 0 && i >= 0);
-    for (int i = 0; i < MANTISSA_LEN; i++) { floatPart[i] = arr[i]; }
-    floatPart[0] = arr[0] = 0;
-    floatPart[1] = arr[1] = 1;
-}
-
-unsigned cDecFromBin(unsigned binaryArray[], int size) {
-    unsigned decimalValue = 0;
-    for (int index = 0; index < size; index++) {
-        decimalValue += binaryArray[index] * (1 << (size - 1 - index));
+void fracBin(double n, unsigned *arr, unsigned *floatPart, int len) {
+    double fractional_part = n - (int)n;
+    for (int i = len - 1; i >= 0; --i) {
+        fractional_part *= 2;
+        if (fractional_part >= 1) {
+            arr[i] = 1;
+            fractional_part -= 1;
+        } else { arr[i] = 0; }
+        if (fractional_part == 0) break;
     }
-    return decimalValue;
-}
-
-void convFracToDec(unsigned* binaryFraction, int exponent) {
-    unsigned intermediateResults0[64] = { 0 };
-    unsigned intermediateResults1[64] = { 0 };
-    unsigned finalResults[64] = { 0 };
-
-    printf("\nfrac part: 0.");
-
-    for (int i = 0; i < 64; i++) {
-        int carryOver = 0;
-        for (int j = 0; j < 56; j++) {
-            intermediateResults0[j + 1] = binaryFraction[j];
-            intermediateResults1[j + 3] = binaryFraction[j];
-        }
-
-        for (int j = 59; j >= 0; j--) {
-            int total = intermediateResults0[j] + intermediateResults1[j] + carryOver;
-            carryOver = total / 2;
-            finalResults[j] = total % 2;
-        }
-
-        unsigned decimalDigit = 0;
-        for (int j = 0; j < 59; j++) {
-            binaryFraction[j] = finalResults[j + 4];
-            decimalDigit += binaryFraction[j];
-        }
-
-        if (decimalDigit > 0) printf("%u", cDecFromBin(finalResults, 4));
-    }
-    printf("\n");
+    for (int i = 0; i < MANTISSA_LEN + 3; ++i) floatPart[i] = arr[i];
 }
 
 void multiplyBinary(unsigned *m, int len_m, unsigned *n, int len_n, unsigned *overflow) {
-    int carry = 0, temp_result[MANTISSA_LEN * 2] = {0};
+    int max_len = len_m + len_n;
+    unsigned temp_result[max_len];
+    for (int i = 0; i < max_len; ++i) { temp_result[i] = 0; }
 
-    for (int i = 0; i < len_m; i++) {
-        carry = 0;
-        for (int j = 0; j < len_n; j++) {
-            int product = m[i] * n[j] + carry + temp_result[i + j];
-            temp_result[i + j] = product % 2;
+    for (int i = 0; i < len_m; ++i) {
+        unsigned carry = 0;
+        for (int j = 0; j < len_n; ++j) {
+            int idx = i + j;
+            unsigned product = m[i] * n[j] + temp_result[idx] + carry;
+            temp_result[idx] = product % 2;
             carry = product / 2;
         }
-        if (carry) temp_result[i + len_n] = carry;
+        int idx = i + len_n;
+        while (carry > 0 && idx < max_len) {
+            unsigned sum = temp_result[idx] + carry;
+            temp_result[idx] = sum % 2;
+            carry = sum / 2;
+            ++idx;
+        }
     }
-    for (int i = 0; i < len_m; i++) m[i] = temp_result[i];
-    for (int i = len_m; i < len_m + len_n; i++) overflow[i - len_m] = temp_result[i];
+    for (int i = 0; i < len_m; ++i) { m[i] = (i < max_len) ? temp_result[i] : 0; }
+    for (int i = 0; i < len_n; ++i) { overflow[i] = (len_m + i < max_len) ? temp_result[len_m + i] : 0; }
 }
 
 int isArrayZero(unsigned *a, int len) {
@@ -122,12 +87,6 @@ unsigned long long extractIntegerPart(unsigned long long mantissa, int exponent)
     // return mantissa >> 52;
 }
 
-void reverse(unsigned a[], int len) {
-    for (int i = 0; i < len; i++) {
-        a[i] = a[len-i-1];
-    }
-    a[50] = 1;
-}
 int main () {
     union 
     {
@@ -136,31 +95,26 @@ int main () {
         double d; // 8 byte
     } uni;
     printf("1. "); scanf("%lf", &uni.d);
-    
+    int len = MANTISSA_LEN;
     int exps = _exp(uni.ll); unsigned long long mant = _mantissa(uni.ll);
-    unsigned m[MANTISSA_LEN+EXP_LEN] = {0};
-    unsigned n[4] = {0, 1, 0, 1}, overflow[MANTISSA_LEN * 2] = {0}, floatPart[MANTISSA_LEN];
-    fracBin(uni.d, m, floatPart);
+    if ((int)uni.d == 0) { len -= exps; }
+    unsigned m[len], n[4] = {0, 1, 0, 1}, overflow[len * 2], floatPart[len];
+    fracBin(uni.d, m, floatPart, len);
     if ((int)uni.d != 0) {
-        for (int i = MANTISSA_LEN - 1; i >= 0; i--) {
+        for (int i = len - 1; i >= 0; i--) {
             floatPart[i] = m[i] = ((uni.ll << exps) >> i) & 1;
         }
     }
-    reverse(m, MANTISSA_LEN);
-    printArr(m, MANTISSA_LEN); printf("\n");
-    convFracToDec(m, exps);
-    // unsigned m[] = {1, 1, 0, 0, 1, 1, 0, 0, 0};
-
-    unsigned ofBit[100];
+    unsigned ofBit[64];
     int counter = 0;
-    while (!isArrayZero(m, MANTISSA_LEN)) {
-        multiplyBinary(m, MANTISSA_LEN, n, 4, overflow);
+    while (!isArrayZero(m, len)) {
+        multiplyBinary(m, len, n, 4, overflow);
         ofBit[counter++] = binaryToDecimal(overflow, 4);
 
         // printf("\nResult m[]: ");
-        // printArr(m, MANTISSA_LEN);
-        // printf("\nOverflow (extra bits): %u ", binaryToDecimal(overflow, 6));
-        // printArr(overflow, 4);
+        // printArr(m, len);
+        // printf("\nOverflow (extra bits): %u ", binaryToDecimal(overflow, 4));
+        // printArr(overflow, 4); printf("\n");
     }
 
     printf("2. binary view: "); printBin(uni.ll, 0, DOUBLE_LEN);
@@ -168,8 +122,9 @@ int main () {
     printf("\n3.2 exp: %d ", _exp(uni.ll)); printBin(uni.ll, DOUBLE_LEN - EXP_LEN, DOUBLE_LEN - 1);
     printf("\n3.3 mantissa: "); printBin(uni.ll, 0, DOUBLE_LEN - EXP_LEN - 1);
     printf("\n4.1 "); transDecToBin(extractIntegerPart(mant, exps));
-    printf("\n4.2 "); printArr(floatPart, MANTISSA_LEN);
+    printf("\n4.2 "); printArr(floatPart, len);
     printf("\n5. %llu.", extractIntegerPart(mant, exps)); printArrRight(ofBit, counter);
+    printf("\n   %.60lf", uni.d);
 
     // printf("binary view: "); printBinDouble(uni.ll); printf("\n");
     // // looks pretty fine
