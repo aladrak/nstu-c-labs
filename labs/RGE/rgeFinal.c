@@ -34,7 +34,7 @@ void fracBin(double n, unsigned *arr, unsigned *floatPart, int len) {
         } else { arr[i] = 0; }
         if (fractional_part == 0) break;
     }
-    for (int i = 0; i < MANTISSA_LEN + 3; ++i) floatPart[i] = arr[i];
+    for (int i = 0; i < len; ++i) floatPart[i] = arr[i];
 }
 
 void multiplyBinary(unsigned *m, int len_m, unsigned *n, int len_n, unsigned *overflow) {
@@ -99,6 +99,9 @@ int main () {
     int exps = _exp(uni.ll); unsigned long long mant = _mantissa(uni.ll);
     if ((int)uni.d == 0) { len -= exps; }
     unsigned m[len], n[4] = {0, 1, 0, 1}, overflow[len * 2], floatPart[len];
+    for (int i = 0; i < len; i++) {
+        m[i] = floatPart[0] = 0;
+    }
     fracBin(uni.d, m, floatPart, len);
     if ((int)uni.d != 0) {
         for (int i = len - 1; i >= 0; i--) {
