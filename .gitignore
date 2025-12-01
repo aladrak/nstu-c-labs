@@ -1,4 +1,5 @@
 
 *.exe
+/.vscode
 **/.vscode
 .vscode/tasks.json
